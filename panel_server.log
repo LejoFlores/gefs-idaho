@@ -1,0 +1,137 @@
+WARNING:param.dynamic_operation: Callable raised "IndexError('index 0 is out of bounds for axis 0 with size 0')".
+Invoked as dynamic_operation(np.datetime64('2020-10-01T00:00:00.000000000'), height=400, scale=1.0, width=600, x_range=(np.float64(-1.0), np.float64(1.0)), y_range=(np.float64(-1.0), np.float64(1.0)))
+2026-01-31 12:45:38,503 Callable raised "IndexError('index 0 is out of bounds for axis 0 with size 0')".
+Invoked as dynamic_operation(np.datetime64('2020-10-01T00:00:00.000000000'), height=400, scale=1.0, width=600, x_range=(np.float64(-1.0), np.float64(1.0)), y_range=(np.float64(-1.0), np.float64(1.0)))
+WARNING:param.dynamic_operation: Callable raised "IndexError('index 0 is out of bounds for axis 0 with size 0')".
+Invoked as dynamic_operation(np.datetime64('2020-10-01T00:00:00.000000000'), height=400, scale=1.0, width=600, x_range=(np.float64(-1.0), np.float64(1.0)), y_range=(np.float64(-1.0), np.float64(1.0)))
+2026-01-31 12:45:38,503 Callable raised "IndexError('index 0 is out of bounds for axis 0 with size 0')".
+Invoked as dynamic_operation(np.datetime64('2020-10-01T00:00:00.000000000'), height=400, scale=1.0, width=600, x_range=(np.float64(-1.0), np.float64(1.0)), y_range=(np.float64(-1.0), np.float64(1.0)))
+WARNING:param.dynamic_operation: Callable raised "IndexError('index 0 is out of bounds for axis 0 with size 0')".
+Invoked as dynamic_operation(np.datetime64('2020-10-01T00:00:00.000000000'), height=400, scale=1.0, width=600, x_range=(np.float64(-1.0), np.float64(1.0)), y_range=(np.float64(-1.0), np.float64(1.0)))
+2026-01-31 12:45:38,503 Callable raised "IndexError('index 0 is out of bounds for axis 0 with size 0')".
+Invoked as dynamic_operation(np.datetime64('2020-10-01T00:00:00.000000000'), height=400, scale=1.0, width=600, x_range=(np.float64(-1.0), np.float64(1.0)), y_range=(np.float64(-1.0), np.float64(1.0)))
+2026-01-31 12:45:38,599 W-1005 (FIXED_SIZING_MODE): 'fixed' sizing mode requires width and height to be set: Column(id='p1102', ...)
+2026-01-31 12:45:38,600 W-1005 (FIXED_SIZING_MODE): 'fixed' sizing mode requires width and height to be set: Column(id='p1036', ...)
+2026-01-31 12:45:38,611 Starting Bokeh server version 3.8.2 (running on Tornado 6.5.4)
+2026-01-31 12:45:38,611 User authentication hooks NOT provided (default user enabled)
+2026-01-31 12:45:38,613 Bokeh app running at: http://localhost:5006/app
+2026-01-31 12:45:38,613 Starting Bokeh server with process id: 93586
+/Users/lejoflores/gefs-idaho/.venv/lib/python3.11/site-packages/panel/io/reload.py:139: FutureWarning: --dev and --autoreload functionality now depends on the watchfiles library. In future versions autoreload will not work without watchfiles being installed. Since it provides a much better user experience consider installing it today.
+  warnings.warn(
+Traceback (most recent call last):
+  File "/Users/lejoflores/gefs-idaho/.venv/lib/python3.11/site-packages/holoviews/plotting/util.py", line 306, in get_plot_frame
+    return map_obj[key]
+           ~~~~~~~^^^^^
+  File "/Users/lejoflores/gefs-idaho/.venv/lib/python3.11/site-packages/holoviews/core/spaces.py", line 1303, in __getitem__
+    val = self._execute_callback(*tuple_key)
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/lejoflores/gefs-idaho/.venv/lib/python3.11/site-packages/holoviews/core/spaces.py", line 1051, in _execute_callback
+    retval = self.callback(*args, **kwargs)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/lejoflores/gefs-idaho/.venv/lib/python3.11/site-packages/holoviews/core/spaces.py", line 627, in __call__
+    ret = self.callable(*args, **kwargs)
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/lejoflores/gefs-idaho/.venv/lib/python3.11/site-packages/holoviews/util/__init__.py", line 1078, in dynamic_operation
+    key, obj = resolve(key, kwargs)
+               ^^^^^^^^^^^^^^^^^^^^
+  File "/Users/lejoflores/gefs-idaho/.venv/lib/python3.11/site-packages/holoviews/util/__init__.py", line 1067, in resolve
+    return key, map_obj[key]
+                ~~~~~~~^^^^^
+  File "/Users/lejoflores/gefs-idaho/.venv/lib/python3.11/site-packages/holoviews/core/spaces.py", line 1303, in __getitem__
+    val = self._execute_callback(*tuple_key)
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/lejoflores/gefs-idaho/.venv/lib/python3.11/site-packages/holoviews/core/spaces.py", line 1051, in _execute_callback
+    retval = self.callback(*args, **kwargs)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/lejoflores/gefs-idaho/.venv/lib/python3.11/site-packages/holoviews/core/spaces.py", line 627, in __call__
+    ret = self.callable(*args, **kwargs)
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/lejoflores/gefs-idaho/.venv/lib/python3.11/site-packages/holoviews/util/__init__.py", line 1078, in dynamic_operation
+    key, obj = resolve(key, kwargs)
+               ^^^^^^^^^^^^^^^^^^^^
+  File "/Users/lejoflores/gefs-idaho/.venv/lib/python3.11/site-packages/holoviews/util/__init__.py", line 1067, in resolve
+    return key, map_obj[key]
+                ~~~~~~~^^^^^
+  File "/Users/lejoflores/gefs-idaho/.venv/lib/python3.11/site-packages/holoviews/core/spaces.py", line 1303, in __getitem__
+    val = self._execute_callback(*tuple_key)
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/lejoflores/gefs-idaho/.venv/lib/python3.11/site-packages/holoviews/core/spaces.py", line 1051, in _execute_callback
+    retval = self.callback(*args, **kwargs)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/lejoflores/gefs-idaho/.venv/lib/python3.11/site-packages/holoviews/core/spaces.py", line 627, in __call__
+    ret = self.callable(*args, **kwargs)
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/lejoflores/gefs-idaho/.venv/lib/python3.11/site-packages/holoviews/util/__init__.py", line 1079, in dynamic_operation
+    return apply(obj, *key, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/lejoflores/gefs-idaho/.venv/lib/python3.11/site-packages/holoviews/util/__init__.py", line 1071, in apply
+    processed = self._process(element, key, kwargs)
+                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/lejoflores/gefs-idaho/.venv/lib/python3.11/site-packages/holoviews/util/__init__.py", line 1053, in _process
+    return self.p.operation.process_element(element, key, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/lejoflores/gefs-idaho/.venv/lib/python3.11/site-packages/holoviews/core/operation.py", line 192, in process_element
+    return self._apply(element, key)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/lejoflores/gefs-idaho/.venv/lib/python3.11/site-packages/holoviews/core/operation.py", line 141, in _apply
+    ret = self._process(element, key)
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/lejoflores/gefs-idaho/.venv/lib/python3.11/site-packages/holoviews/operation/datashader.py", line 1623, in _process
+    element = element.map(op, predicate)
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/lejoflores/gefs-idaho/.venv/lib/python3.11/site-packages/holoviews/core/data/__init__.py", line 204, in pipelined_fn
+    result = method_fn(*args, **kwargs)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/lejoflores/gefs-idaho/.venv/lib/python3.11/site-packages/holoviews/core/data/__init__.py", line 1316, in map
+    return super().map(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/lejoflores/gefs-idaho/.venv/lib/python3.11/site-packages/holoviews/core/dimension.py", line 761, in map
+    return map_fn(self) if applies else self
+           ^^^^^^^^^^^^
+  File "/Users/lejoflores/gefs-idaho/.venv/lib/python3.11/site-packages/holoviews/core/operation.py", line 212, in __call__
+    return self._apply(element)
+           ^^^^^^^^^^^^^^^^^^^^
+  File "/Users/lejoflores/gefs-idaho/.venv/lib/python3.11/site-packages/holoviews/core/operation.py", line 141, in _apply
+    ret = self._process(element, key)
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/lejoflores/gefs-idaho/.venv/lib/python3.11/site-packages/holoviews/operation/datashader.py", line 1192, in _process
+    agg = cvs.quadmesh(data[vdim], x.name, y.name, agg_fn)
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/lejoflores/gefs-idaho/.venv/lib/python3.11/site-packages/datashader/core.py", line 854, in quadmesh
+    yarr, np.linspace(yarr[0].data, yarr[-1].data, len(yarr))
+                      ~~~~^^^
+  File "/Users/lejoflores/gefs-idaho/.venv/lib/python3.11/site-packages/xarray/core/dataarray.py", line 888, in __getitem__
+    return self.isel(indexers=self._item_key_to_dict(key))
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/lejoflores/gefs-idaho/.venv/lib/python3.11/site-packages/xarray/core/dataarray.py", line 1582, in isel
+    variable = self._variable.isel(indexers, missing_dims=missing_dims)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/lejoflores/gefs-idaho/.venv/lib/python3.11/site-packages/xarray/core/variable.py", line 1130, in isel
+    return self[key]
+           ~~~~^^^^^
+  File "/Users/lejoflores/gefs-idaho/.venv/lib/python3.11/site-packages/xarray/core/variable.py", line 820, in __getitem__
+    data = indexing.apply_indexer(indexable, indexer)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/lejoflores/gefs-idaho/.venv/lib/python3.11/site-packages/xarray/core/indexing.py", line 1183, in apply_indexer
+    return indexable[indexer]
+           ~~~~~~~~~^^^^^^^^^
+  File "/Users/lejoflores/gefs-idaho/.venv/lib/python3.11/site-packages/xarray/core/indexing.py", line 2036, in __getitem__
+    return self._index_get(indexer, "__getitem__")
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/lejoflores/gefs-idaho/.venv/lib/python3.11/site-packages/xarray/core/indexing.py", line 2017, in _index_get
+    result = self.array[key]
+             ~~~~~~~~~~^^^^^
+  File "/Users/lejoflores/gefs-idaho/.venv/lib/python3.11/site-packages/pandas/core/indexes/base.py", line 5401, in __getitem__
+    return getitem(key)
+           ^^^^^^^^^^^^
+IndexError: index 0 is out of bounds for axis 0 with size 0
+
+Received signal 15, shutting down
+Traceback (most recent call last):
+  File "/opt/homebrew/Cellar/python@3.11/3.11.14_2/Frameworks/Python.framework/Versions/3.11/lib/python3.11/multiprocessing/resource_tracker.py", line 239, in main
+    cache[rtype].remove(name)
+KeyError: '/mp-hcnfig8x'
+/opt/homebrew/Cellar/python@3.11/3.11.14_2/Frameworks/Python.framework/Versions/3.11/lib/python3.11/multiprocessing/resource_tracker.py:254: UserWarning: resource_tracker: There appear to be 1 leaked semaphore objects to clean up at shutdown
+  warnings.warn('resource_tracker: There appear to be %d '
+/opt/homebrew/Cellar/python@3.11/3.11.14_2/Frameworks/Python.framework/Versions/3.11/lib/python3.11/multiprocessing/resource_tracker.py:267: UserWarning: resource_tracker: '/mp-hcnfig8x': [Errno 2] No such file or directory
+  warnings.warn('resource_tracker: %r: %s' % (name, e))

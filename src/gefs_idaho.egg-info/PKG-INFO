@@ -1,0 +1,23 @@
+Metadata-Version: 2.4
+Name: gefs-idaho
+Version: 0.1.0
+Summary: GEFS Idaho forecast visualization with Panel
+Requires-Python: >=3.10
+Requires-Dist: xarray
+Requires-Dist: dask
+Requires-Dist: zarr
+Requires-Dist: netcdf4
+Requires-Dist: panel
+Requires-Dist: hvplot
+Requires-Dist: holoviews
+Requires-Dist: datashader
+Requires-Dist: numpy
+Requires-Dist: pandas
+Requires-Dist: fsspec
+Requires-Dist: s3fs
+Requires-Dist: aiohttp
+Requires-Dist: requests
+Provides-Extra: dev
+Requires-Dist: pytest; extra == "dev"
+Requires-Dist: ruff; extra == "dev"
+Requires-Dist: black; extra == "dev"

@@ -1,0 +1,15 @@
+xarray
+dask
+zarr
+netcdf4
+panel
+hvplot
+holoviews
+datashader
+numpy
+pandas
+
+[dev]
+pytest
+ruff
+black
