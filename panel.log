@@ -1,0 +1,8 @@
+2026-01-31 17:48:28,851 Starting Bokeh server version 3.8.2 (running on Tornado 6.5.4)
+2026-01-31 17:48:28,853 User authentication hooks NOT provided (default user enabled)
+2026-01-31 17:48:28,858 Bokeh app running at: http://localhost:5006/app
+2026-01-31 17:48:28,858 Starting Bokeh server with process id: 10874
+/Users/lejoflores/gefs-idaho/src/gefs_idaho/data.py:135: FutureWarning: The return type of `Dataset.dims` will be changed to return a set of dimension names in future, in order to be more consistent with `DataArray.dims`. To access a mapping from dimension names to lengths, please use `Dataset.sizes`.
+  logger.info(f"  Idaho dimensions: {dict(ds_idaho.dims)}")
+/Users/lejoflores/gefs-idaho/app.py:98: FutureWarning: The return type of `Dataset.dims` will be changed to return a set of dimension names in future, in order to be more consistent with `DataArray.dims`. To access a mapping from dimension names to lengths, please use `Dataset.sizes`.
+  logger.info(f"  Dimensions: {dict(ds.dims)}")

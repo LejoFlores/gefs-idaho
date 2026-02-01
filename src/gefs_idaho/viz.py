@@ -70,22 +70,25 @@ def plot_map(
 
 def plot_time_series(
     da_or_ds,
-    lat: float,
-    lon: float,
+    lat: float = None,
+    lon: float = None,
     title: str = "",
     ylabel: str = "",
     width: int = 800,
     height: int = 300,
 ) -> hv.Overlay:
     """
-    Create time series plot at a point location.
+    Create time series plot at a point location or for already-selected point data.
 
     Parameters
     ----------
     da_or_ds : xr.DataArray or xr.Dataset
-        Data with time/step dimension and optional percentile variables
-    lat, lon : float
-        Point location
+        Data with time/step dimension and optional percentile variables.
+        Can be already subsetted to a point (lat/lon=None) or a full grid
+        (requires lat/lon for selection)
+    lat, lon : float or None
+        Point location for spatial selection. If None, assumes data is already
+        at a single point.
     title : str
         Plot title
     ylabel : str
@@ -102,28 +105,36 @@ def plot_time_series(
     -----
     If input is a Dataset with p10, p50, p90 variables, plots median
     with shaded 10-90% range. Otherwise plots single line.
+    
+    If lat/lon are None, assumes data is already at a point and skips
+    spatial selection.
     """
-    # Find coordinate names with error handling
-    try:
-        lat_name = _find_coord(da_or_ds, ["latitude", "lat", "y"])
-        lon_name = _find_coord(da_or_ds, ["longitude", "lon", "x"])
-    except ValueError as e:
-        # If spatial coords not found, return error message
-        available = list(da_or_ds.coords.keys())
-        return hv.Text(
-            0.5, 0.5, f"Error: Could not find lat/lon coords. Available: {available}"
-        )
+    # If lat/lon provided, perform spatial selection
+    if lat is not None and lon is not None:
+        # Find coordinate names with error handling
+        try:
+            lat_name = _find_coord(da_or_ds, ["latitude", "lat", "y"])
+            lon_name = _find_coord(da_or_ds, ["longitude", "lon", "x"])
+        except ValueError as e:
+            # If spatial coords not found, return error message
+            available = list(da_or_ds.coords.keys())
+            return hv.Text(
+                0.5, 0.5, f"Error: Could not find lat/lon coords. Available: {available}"
+            )
 
-    time_name = _find_coord(da_or_ds, ["valid_time", "time", "step", "lead_time"])
+        # Select point (nearest neighbor) with error handling
+        try:
+            point_data = da_or_ds.sel(
+                {lat_name: lat, lon_name: lon},
+                method="nearest",
+            )
+        except KeyError as e:
+            return hv.Text(0.5, 0.5, f"Error: Could not select point ({lat}, {lon}). {e}")
+    else:
+        # Data already at point
+        point_data = da_or_ds
 
-    # Select point (nearest neighbor) with error handling
-    try:
-        point_data = da_or_ds.sel(
-            {lat_name: lat, lon_name: lon},
-            method="nearest",
-        )
-    except KeyError as e:
-        return hv.Text(0.5, 0.5, f"Error: Could not select point ({lat}, {lon}). {e}")
+    time_name = _find_coord(point_data, ["valid_time", "time", "step", "lead_time"])
 
     # If Dataset with percentiles, plot median with uncertainty
     if isinstance(point_data, xr.Dataset) and "p50" in point_data:

@@ -1,7 +1,13 @@
 """Data loading and subsetting for GEFS forecast data."""
 
+import functools
+import logging
+import time
+from pathlib import Path
 from typing import Optional
 import xarray as xr
+
+logger = logging.getLogger(__name__)
 
 # Idaho bounding box
 IDAHO_LAT_MIN = 42.0
@@ -11,6 +17,10 @@ IDAHO_LON_MAX = -111.0
 
 # GEFS data source
 GEFS_ZARR_URL = "https://data.dynamical.org/noaa/gefs/forecast-35-day/latest.zarr"
+
+# Cache directory
+CACHE_DIR = Path("./cache")
+CACHE_DIR.mkdir(exist_ok=True)
 
 
 def open_gefs_dataset(
@@ -99,12 +109,40 @@ def subset_to_idaho(
     return subset
 
 
+@functools.lru_cache(maxsize=1)
+def _cached_load_idaho_forecast_impl(url: str, chunks_str: str) -> xr.Dataset:
+    """
+    Internal cached implementation of Idaho forecast loading.
+    
+    Uses string for chunks to be hashable for lru_cache.
+    """
+    logger.info("Loading GEFS dataset from remote Zarr (this may take 10-30 seconds)...")
+    t0 = time.time()
+    
+    # Parse chunks back from string
+    chunks = None if chunks_str == "None" else eval(chunks_str)
+    
+    # Open with lazy loading
+    ds = open_gefs_dataset(url=url, chunks=chunks)
+    t1 = time.time()
+    logger.info(f"✓ Dataset opened in {t1-t0:.1f}s")
+    
+    # Subset immediately to avoid global data access
+    logger.info("Subsetting to Idaho bounds...")
+    ds_idaho = subset_to_idaho(ds)
+    t2 = time.time()
+    logger.info(f"✓ Idaho subset created in {t2-t1:.1f}s")
+    logger.info(f"  Idaho dimensions: {dict(ds_idaho.dims)}")
+    
+    return ds_idaho
+
+
 def load_idaho_forecast(
     url: str = GEFS_ZARR_URL,
     chunks: Optional[dict] = None,
 ) -> xr.Dataset:
     """
-    Load GEFS forecast data subset to Idaho with caching-friendly chunking.
+    Load GEFS forecast data subset to Idaho with caching.
 
     Parameters
     ----------
@@ -117,19 +155,21 @@ def load_idaho_forecast(
     -------
     xr.Dataset
         Idaho-subset forecast dataset with lazy loading
+        
+    Notes
+    -----
+    Results are cached in memory using functools.lru_cache.
+    The first call takes 10-30 seconds to open the remote Zarr dataset.
+    Subsequent calls return instantly from cache.
 
     Examples
     --------
     >>> ds = load_idaho_forecast()
     >>> ds.temperature_2m  # Access without computing
     """
-    # Open with lazy loading
-    ds = open_gefs_dataset(url=url, chunks=chunks)
-
-    # Subset immediately to avoid global data access
-    ds_idaho = subset_to_idaho(ds)
-
-    return ds_idaho
+    # Convert chunks to string for hashability
+    chunks_str = str(chunks) if chunks is not None else "None"
+    return _cached_load_idaho_forecast_impl(url, chunks_str)
 
 
 def _find_coord_name(ds: xr.Dataset, candidates: list[str]) -> str:
