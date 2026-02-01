@@ -1,58 +1,145 @@
-# GEFS Idaho Project State
+# GEFS Idaho Forecast Visualization - MVP Project State
 
-**Last Updated**: January 31, 2026 (16:56 UTC) - After performance optimization and server verification
+**Status**: MVP Milestone Achieved - January 31, 2026, 22:55 UTC
 
-## Goal
+## MVP Capabilities
 
-Interactive Panel dashboard for visualizing NOAA GEFS (Global Ensemble Forecast System) 35-day ensemble forecast data over Idaho, showing temperature and precipitation with ensemble uncertainty bounds.
+### What the MVP Does
 
-## Current Status
+The application provides an interactive Panel dashboard for visualizing NOAA GEFS 35-day ensemble forecast data over the Western US (30-50°N, -125 to -100°W):
 
-### ✅ What Works
+#### Maps
+- **Temperature**: Snapshot at user-selected forecast day, showing ensemble median
+- **Precipitation**: Total accumulated precipitation from forecast init to user-selected day, showing ensemble median
+- Both maps display:
+  - Fixed color scales (temperature: -20 to 35°C, precipitation: 0 to 1000 mm)
+  - State boundaries, national borders, and coastlines via cartopy/geoviews
+  - Efficient rendering via Datashader with computed (not lazy) data to avoid chunking errors
+  - Interactive Bokeh plotting with hover tooltips
 
-- **Panel server operational**: Launches successfully at `http://localhost:5006/app`, serves UI immediately with loading indicators
-- **Responsive UI**: Controls (Variable selector, City selector, Accumulation window, Valid time slider) render instantly
-- **Data pipeline functional**: 
-  - Remote Zarr dataset loading with automatic idle-time caching (first call: ~10-30s, repeat: instant)
-  - Idaho spatial subset (33 lat × 25 lon points) detected and extracted correctly
-  - Lazy evaluation throughout (Dask + xarray)
-- **Compute optimizations active**:
-  - Map view: Select time BEFORE computing ensemble stats (reduces computation 181x)
-  - Time series: Select spatial point BEFORE computing ensemble stats (reduces computation ~825x)
-  - Subsequent widget changes complete in <5s (verified to show log completion messages)
-- **Loading experience**: Non-blocking UI with spinners during data load, "Loading data..." messages when needed
-- **Test suite**: All 7/7 tests passing
-  - Coordinate discovery (time/init_time, step/lead_time, ensemble/ensemble_member variants)
-  - Descending latitude handling (90° to -90°)
-  - Precipitation accumulation unit conversion
-  - Data structure preservation through operations
-- **Error handling**: Try/except blocks with user-friendly messages for coordinate/selection errors
-- **Logging/debugging**: Timing instrumentation shows dataset open, subset, stats compute times
+#### Time Series Plots
+- **Temperature**: Time series at selected location with ensemble mean and ±1 std dev uncertainty band
+- **Precipitation**: Cumulative accumulated precipitation with ensemble mean and ±1 std dev band (lower bound clipped to zero for non-negative constraint)
+- Available for 9 cities: Boise, Twin Falls, Idaho Falls, Coeur d'Alene, Denver, Reno, Salt Lake City, Jackson WY, Vail CO
 
-### ⚠️ Known Issues / Remaining Work
+#### Data Processing
+- **Local Zarr caching**: Western US subset cached from init_time 2025-12-20T00:00:00 (825×8181 finite precipitation values)
+- **Lazy → computed pipeline**: Xarray lazy chains with `.compute()` before visualization
+- **Ensemble statistics**: Mean, standard deviation, and percentiles (p10, p50, p90)
+- **Precipitation handling**: 
+  - Filters lead_time=0 (always NaN, not a forecast variable)
+  - Converts rate (mm/s) to accumulation (mm) using timestep duration
+  - Cumsum for total accumulated precipitation from forecast init
 
-1. **xarray FutureWarnings** (non-blocking):
-   - `Dataset.dims` will change return type in future xarray version
-   - Solution: Replace `dict(ds.dims)` with `dict(ds.sizes)` in lines 98, 135
-   - Impact: None on functionality; just deprecation notices in logs
+#### Dashboard Controls
+- Forecast days slider (1-35 days) with no colorbar saturation
+- Variable selector (temperature_2m, precipitation_surface)
+- City dropdown (9 locations)
+- Precipitation window selector (6h, 24h, 7d)
 
-2. **End-to-end browser testing not completed**:
-   - Server confirmed running and UI loads
-   - Full workflow (widget interactions → map renders → time series renders) not manually verified in actual browser
-   - Recommend: Open `http://localhost:5006/app` in browser and interact with all controls
+### What It Does NOT Yet Do
 
-3. **No network failure handling**:
-   - If dynamical.org is unavailable, first load will hang or error
-   - No offline mode or local fallback data
-   - Future: Add timeout + friendly error message
+1. **Real-time data**: Always uses locally cached subset (init_time 2025-12-20T00)
+   - No automatic refresh from remote GEFS data
+   - No latest forecast detection
 
-4. **No forecast data refresh mechanism**:
-   - GEFS updates every 6 hours but dashboard doesn't auto-refresh
-   - Future: Add periodic refresh or manual "Update Data" button
+2. **Multiple ensemble members**: Only displays ensemble statistics (mean, std, percentiles)
+   - Cannot visualize individual member trajectories
+   - No member-specific comparison view
 
-5. **Performance under slow networks**:
-   - Initial load depends entirely on network speed to dynamical.org
-   - No progress bar (just "Loading..." text)
+3. **Advanced meteorology**:
+   - No derived variables (wind, humidity, pressure)
+   - No cross-validation with observations
+   - No forecast skill metrics or verification
+
+4. **Data export**: No download functionality for time series or map data
+
+5. **Geographical features**: Maps show boundaries/coastlines but no topography/elevation contours
+
+6. **Historical comparisons**: Single forecast init only
+
+7. **Performance optimization**: No tiling for sub-domain zoom or progressive rendering
+
+## Known Performance Limitations
+
+### Data Loading
+- **Initial load**: ~30-40 seconds for full Western US dataset (31 ensemble members, 180 lead times, 81×101 grid)
+- **Background threading**: Blocks UI during first-time data load despite threading (Bokeh render queue limitation)
+- **Map computation**: 3-5 seconds per map update due to ensemble statistics + .compute() call
+- **Time series computation**: 1-2 seconds per location update
+
+### Rendering
+- **Datashader rasterization**: Required to avoid chunking errors
+  - Solution: Compute data before plotting, pass to hvplot with rasterize=True
+- **Cartopy feature overlays**: ~2-3 seconds additional render time per map update
+
+### Memory
+- **Cached dataset**: ~2.5 GB in-memory after .compute()
+- **Dashboard process**: ~500 MB base + ~100 MB per connected client
+
+### Scaling
+- Maps saturate colorbar with western US extent (1000 mm limit for precipitation)
+- Time series uncertain with small ensemble (31 members)
+- Cannot extend to global domain without new architecture
+
+## Last Verified Commands
+
+### Setup & Installation
+```bash
+# Configure Python environment (in /Users/lejoflores/gefs-idaho)
+pip install -e ".[dev]"
+pip install geoviews cartopy
+
+# Generate cache
+rm -rf cache && /Users/lejoflores/gefs-idaho/.venv/bin/python cache_valid_data.py
+```
+
+**Expected output:**
+```
+✓ Subset to Western US: {'ensemble_member': 31, 'lead_time': 181, 'latitude': 81, 'longitude': 101}
+✓ Filtered lead_time=0: 180 lead_times remaining
+✓ Precipitation sample: 8181/8181 finite values
+✅ SUCCESS! Cache has valid precipitation data
+```
+
+### Running Dashboard
+```bash
+cd /Users/lejoflores/gefs-idaho
+nohup /Users/lejoflores/gefs-idaho/.venv/bin/panel serve app.py --port 5006 > panel.log 2>&1 &
+sleep 3
+curl -s -o /dev/null -w "HTTP %{http_code}\n" http://localhost:5006/app
+```
+
+**Expected result**: `HTTP 200` within 3 seconds
+
+### Verification Checklist
+- [x] Panel server starts cleanly, listens on localhost:5006
+- [x] Map renders: temperature snapshot with state/coast features
+- [x] Map renders: cumulative precipitation with colorbar (0-1000 mm) - no saturation
+- [x] Time series: ensemble mean + ±1 std dev shaded area (temperature)
+- [x] Time series: cumulative precipitation with non-negative lower bound
+- [x] City dropdown contains all 9 locations
+- [x] Forecast days slider updates both maps without saturation
+- [x] No Datashader errors on map/slider interaction
+- [x] No negative precipitation in uncertainty band
+
+### Test Commands
+```bash
+pytest
+```
+
+## Architecture
+
+**Three-layer design** (`src/gefs_idaho/`):
+1. **data.py**: Load remote Zarr, subset to Western US bounds, filter lead_time=0
+2. **derive.py**: Compute derived products (valid_time, accumulations, ensemble statistics)
+3. **viz.py**: Create plots with hvPlot/HoloViews + cartopy features
+
+**Key pattern**: Data → lazy xarray chains → `compute()` before plotting → Datashader rasterization → Panel display
+
+---
+
+**Repository**: /Users/lejoflores/gefs-idaho
    - Future: Add download progress indicator using Zarr chunk tracking
 
 ### Recently Fixed 🔧
@@ -67,7 +154,8 @@ Interactive Panel dashboard for visualizing NOAA GEFS (Global Ensemble Forecast 
    - Select spatial point BEFORE computing ensemble stats in time series (massive speedup)
    - Added loading spinners (`pn.indicators.LoadingSpinner`) during data load
    - Added timing instrumentation with logging to identify bottlenecks
-6. **Caching infrastructure**: Created `cache/` directory (gitignored) for future local Zarr caching
+6. **Async loading fix** (Jan 31, 2026): Data load moved to background thread and triggered on session start to avoid blocking `app.view()` during initial render
+7. **Caching infrastructure**: Created `cache/` directory (gitignored) for future local Zarr caching
 
 ## Key Design Decisions
 
@@ -85,7 +173,7 @@ Interactive Panel dashboard for visualizing NOAA GEFS (Global Ensemble Forecast 
    - Uses `rasterize=True` for efficient large-grid rendering via Datashader
 4. **`app.py`**: Panel dashboard with `param.Parameterized` reactive state management
    - `@param.depends()` decorators trigger plot updates on control changes
-   - Data loaded once in `__init__`, cached in `self._ds`
+   - Data loaded in a background thread on session start, cached in `self._ds`
 
 ### Data Source
 

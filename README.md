@@ -1,6 +1,8 @@
 # GEFS Idaho Forecast Visualization
 
-Interactive Panel dashboard for visualizing NOAA GEFS (Global Ensemble Forecast System) 35-day forecast data over Idaho.
+**🎯 MVP Milestone Achieved (Jan 31, 2026)** — Interactive dashboard with maps, time series, and ensemble uncertainty for Western US temperature and precipitation forecasts.
+
+Interactive Panel dashboard for visualizing NOAA GEFS (Global Ensemble Forecast System) 35-day forecast data over the Western US.
 
 ## Overview
 

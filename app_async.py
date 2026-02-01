@@ -3,8 +3,6 @@
 import logging
 import time
 import threading
-import numpy as np
-import xarray as xr
 import panel as pn
 import param
 
@@ -13,15 +11,12 @@ from gefs_idaho.derive import (
     add_valid_time,
     compute_precipitation_accumulation,
     compute_ensemble_statistics,
-    _find_time_coord,
-    _find_step_coord,
 )
 from gefs_idaho.viz import (
     plot_map,
     plot_time_series,
     create_city_selector,
     get_city_coords,
-    IDAHO_CITIES,
 )
 
 # Configure logging
@@ -46,7 +41,7 @@ class GEFSIdahoDashboard(param.Parameterized):
 
     city = param.Selector(
         default="Boise",
-        objects=list(IDAHO_CITIES.keys()),
+        objects=["Boise", "Twin Falls", "Idaho Falls", "Coeur d'Alene"],
         doc="City location for time series",
     )
 
@@ -56,10 +51,10 @@ class GEFSIdahoDashboard(param.Parameterized):
         doc="Precipitation accumulation window",
     )
 
-    forecast_days = param.Integer(
-        default=7,
-        bounds=(1, 35),
-        doc="Forecast day to display (1-35 days ahead)",
+    valid_time_index = param.Integer(
+        default=0,
+        bounds=(0, 100),
+        doc="Valid time index for map view",
     )
 
     def __init__(self, **params):
@@ -77,66 +72,63 @@ class GEFSIdahoDashboard(param.Parameterized):
         # Don't reload if already loaded
         if self._data_loaded or self._ds is not None:
             return
-
+        
         # Don't start multiple loading threads
         if self._loading:
             return
-
+        
         self._loading = True
-
+        
         # Define background loading function
         def _load_in_background():
-            logger_local = logging.getLogger(__name__)
-            logger_local.info("Starting background data load...")
+            logger.info("Starting background data load...")
             t_start = time.time()
-
+            
             try:
                 # Load Idaho subset (cached after first call)
-                logger_local.info("Calling load_idaho_forecast()...")
+                logger.info("Calling load_idaho_forecast()...")
                 ds = load_idaho_forecast()
 
                 # Add valid_time coordinate
-                logger_local.info("Adding valid_time coordinate...")
+                logger.info("Adding valid_time coordinate...")
                 ds = add_valid_time(ds)
 
                 self._ds = ds
                 self._data_loaded = True
 
+                # Update valid_time bounds
+                from gefs_idaho.derive import _find_step_coord
+
+                step_dim = _find_step_coord(ds)
+                n_steps = len(ds[step_dim])
+                self.param.valid_time_index.bounds = (0, n_steps - 1)
+                
                 t_end = time.time()
-                logger_local.info(f"✓ Data loaded successfully in {t_end - t_start:.1f}s")
-                logger_local.info(f"  Dimensions: {dict(ds.sizes)}")
-                logger_local.info(f"  Variables: {list(ds.data_vars.keys())}")
-
-                # Trigger UI refresh on the main thread
-                doc = pn.state.curdoc
-                if doc is not None:
-                    doc.add_next_tick_callback(lambda: self.param.trigger("variable"))
-
+                logger.info(f"✓ Data loaded successfully in {t_end - t_start:.1f}s")
+                logger.info(f"  Dimensions: {dict(ds.sizes)}")
+                logger.info(f"  Variables: {list(ds.data_vars.keys())}")
+                
             except Exception as e:
                 self._load_error = str(e)
-                logger_local.error(f"Error loading data: {e}", exc_info=True)
+                logger.error(f"Error loading data: {e}", exc_info=True)
             finally:
                 self._loading = False
-
+        
         # Start background thread
         self._load_thread = threading.Thread(target=_load_in_background, daemon=True)
         self._load_thread.start()
 
-    @param.depends("variable", "forecast_days")
+    @param.depends("variable", "valid_time_index", "accumulation_window")
     def map_view(self):
-        """Create map showing total accumulation from init to forecast day."""
+        """Create map visualization for selected variable and time."""
         if not self._data_loaded:
+            # Trigger background load
             self._load_data()
-            return pn.pane.Markdown(
-                "⏳ **Loading data from remote Zarr...**\n\n"
-                "_First load: ~30-40 seconds. UI will update automatically._"
-            )
-
+            return pn.pane.Markdown("⏳ **Loading data from remote Zarr...**\n\n_First load: ~30-40 seconds. UI will update automatically._")
+        
+        # Show loading indicator while background thread completes
         if self._loading:
-            return pn.pane.Markdown(
-                "⏳ **Loading data from remote Zarr...**\n\n"
-                "_First load: ~30-40 seconds. UI will update automatically._"
-            )
+            return pn.pane.Markdown("⏳ **Loading data from remote Zarr...**\n\n_First load: ~30-40 seconds. UI will update automatically._")
 
         if self._load_error:
             return pn.pane.Markdown(f"⚠️ Error loading data: {self._load_error}")
@@ -145,82 +137,54 @@ class GEFSIdahoDashboard(param.Parameterized):
             return pn.pane.Markdown("Initializing...")
 
         try:
-            logger.info(f"Computing map: variable={self.variable}, day={self.forecast_days}")
+            logger.info(f"Computing map view: variable={self.variable}, time_idx={self.valid_time_index}, window={self.accumulation_window}")
             t0 = time.time()
-
-            # Select variable and compute appropriate accumulation
+            
+            # Select variable
             if self.variable == "temperature_2m":
-                # Temperature: show snapshot at forecast day
                 da = self._ds.temperature_2m
-                
-                # 3-hour timesteps = 8 per day
-                target_index = min(self.forecast_days * 8 - 1, len(self._ds.lead_time) - 1)
-                da_selected = da.isel(lead_time=target_index)
-                
-                title = f"Temperature at Day {self.forecast_days}"
+                title = f"Temperature (°C) at {self._get_valid_time_label()}"
                 cmap = "RdBu_r"
                 clabel = "Temperature (°C)"
-                clim = (-20, 35)  # Fixed color scale
-                
-            else:  # precipitation - TOTAL accumulation from init to forecast day
+            else:  # precipitation
                 da = self._ds.precipitation_surface
-                
-                # Calculate target index
-                target_index = min(self.forecast_days * 8 - 1, len(self._ds.lead_time) - 1)
-                
-                # Convert rate to stepwise accumulation
-                from gefs_idaho.derive import _find_step_coord
-                step_dim = _find_step_coord(da)
-                step_coord = da[step_dim]
-                
-                # Timestep duration in seconds
-                timestep_diff = step_coord.diff(step_dim).astype("timedelta64[s]").astype(float)
-                timestep_seconds = xr.DataArray(
-                    np.concatenate([[timestep_diff.values[0]], timestep_diff.values]),
-                    dims=[step_dim],
-                    coords={step_dim: step_coord.values},
-                )
-                
-                # Stepwise accumulation (mm)
-                stepwise_accum = da * timestep_seconds
-                
-                # Sum from init to target day
-                da_selected = stepwise_accum.isel({step_dim: slice(0, target_index + 1)}).sum(dim=step_dim)
-                
-                title = f"Total Precipitation: Init to Day {self.forecast_days}"
-                cmap = "PuBuGn"
-                clabel = "Total Precipitation (mm)"
-                clim = (0, 1000)  # Fixed color scale for precipitation
+                # Compute accumulation
+                da = compute_precipitation_accumulation(da, window=self.accumulation_window)
+                title = f"Accumulated Precipitation ({self.accumulation_window}) at {self._get_valid_time_label()}"
+                cmap = "Blues"
+                clabel = "Precipitation (mm)"
 
+            # OPTIMIZATION: Select time slice BEFORE computing ensemble stats
+            # This reduces computation from (time × ensemble × lat × lon) to (ensemble × lat × lon)
+            from gefs_idaho.derive import _find_step_coord
+            step_dim = _find_step_coord(da)
+            da_time_slice = da.isel({step_dim: self.valid_time_index})
+            
             t1 = time.time()
-            logger.info(f"  Data selected/computed in {t1-t0:.2f}s")
-
-            # Compute ensemble statistics
-            stats = compute_ensemble_statistics(da_selected)
-
+            logger.info(f"  Selected time slice in {t1-t0:.2f}s")
+            
+            # Compute ensemble statistics on reduced data
+            stats = compute_ensemble_statistics(da_time_slice)
+            
             t2 = time.time()
-            logger.info(f"  Ensemble stats computed in {t2-t1:.2f}s")
+            logger.info(f"  Computed ensemble stats in {t2-t1:.2f}s")
+            
+            # Get median for map
+            map_data = stats.p50
 
-            # CRITICAL: Compute data before plotting to avoid Datashader errors
-            map_data = stats.p50.compute()
-
-            t3 = time.time()
-            logger.info(f"  Map data computed in {t3-t2:.2f}s")
-
-            # Create map with computed data
+            # Create map
             plot = plot_map(
                 map_data,
                 title=title,
                 cmap=cmap,
                 clabel=clabel,
-                clim=clim,
             )
-
-            t4 = time.time()
-            logger.info(f"✓ Map ready in {t4-t0:.2f}s total")
+            
+            t3 = time.time()
+            logger.info(f"✓ Map view ready in {t3-t0:.2f}s total")
 
             return pn.pane.HoloViews(plot)
-
+            
         except Exception as e:
             logger.error(f"Error in map_view: {e}", exc_info=True)
             return pn.pane.Markdown(f"⚠️ Error creating map: {e}")
@@ -231,17 +195,11 @@ class GEFSIdahoDashboard(param.Parameterized):
         if not self._data_loaded:
             # Trigger background load
             self._load_data()
-            return pn.pane.Markdown(
-                "⏳ **Loading data from remote Zarr...**\n\n"
-                "_First load: ~30-40 seconds. UI will update automatically._"
-            )
-
+            return pn.pane.Markdown("⏳ **Loading data from remote Zarr...**\n\n_First load: ~30-40 seconds. UI will update automatically._")
+        
         # Show loading indicator while background thread completes
         if self._loading:
-            return pn.pane.Markdown(
-                "⏳ **Loading data from remote Zarr...**\n\n"
-                "_First load: ~30-40 seconds. UI will update automatically._"
-            )
+            return pn.pane.Markdown("⏳ **Loading data from remote Zarr...**\n\n_First load: ~30-40 seconds. UI will update automatically._")
 
         if self._load_error:
             return pn.pane.Markdown(f"⚠️ Error loading data: {self._load_error}")
@@ -250,12 +208,9 @@ class GEFSIdahoDashboard(param.Parameterized):
             return pn.pane.Markdown("Initializing...")
 
         try:
-            logger.info(
-                f"Computing time series: variable={self.variable}, city={self.city}, "
-                f"window={self.accumulation_window}"
-            )
+            logger.info(f"Computing time series: variable={self.variable}, city={self.city}, window={self.accumulation_window}")
             t0 = time.time()
-
+            
             # Get city coordinates
             lat, lon = get_city_coords(self.city)
 
@@ -275,24 +230,13 @@ class GEFSIdahoDashboard(param.Parameterized):
             # This reduces computation from (time × ensemble × lat × lon) to (time × ensemble)
             # Use nearest neighbor selection for the city
             da_point = da.sel(latitude=lat, longitude=lon, method="nearest")
-
-            # Select latest initialization time to avoid DynamicMap over init_time
-            time_dim = _find_time_coord(da_point)
-            if time_dim in da_point.dims:
-                da_point = da_point.isel({time_dim: -1})
-
-            # For precipitation, apply cumsum along time dimension for total accumulation
-            if self.variable == "precipitation_surface":
-                step_dim = _find_step_coord(da_point)
-                if step_dim in da_point.dims:
-                    da_point = da_point.cumsum(dim=step_dim)
-
+            
             t1 = time.time()
             logger.info(f"  Selected spatial point in {t1-t0:.2f}s")
-
+            
             # Compute ensemble statistics on 1D time series
             stats = compute_ensemble_statistics(da_point)
-
+            
             t2 = time.time()
             logger.info(f"  Computed ensemble stats in {t2-t1:.2f}s")
 
@@ -305,12 +249,12 @@ class GEFSIdahoDashboard(param.Parameterized):
                 title=title,
                 ylabel=ylabel,
             )
-
+            
             t3 = time.time()
             logger.info(f"✓ Time series ready in {t3-t0:.2f}s total")
 
             return pn.pane.HoloViews(plot)
-
+            
         except Exception as e:
             logger.error(f"Error in time_series_view: {e}", exc_info=True)
             return pn.pane.Markdown(f"⚠️ Error creating time series: {e}")
@@ -321,12 +265,15 @@ class GEFSIdahoDashboard(param.Parameterized):
             return "N/A"
 
         try:
-            # Calculate target index from forecast_days
-            target_index = min(self.forecast_days * 8 - 1, len(self._ds.lead_time) - 1)
-            valid_time = self._ds.valid_time.isel(lead_time=target_index).values
+            from gefs_idaho.derive import _find_step_coord
+
+            step_dim = _find_step_coord(self._ds)
+            valid_time = self._ds.valid_time.isel(
+                {step_dim: self.valid_time_index}
+            ).values
             return str(valid_time)[:16]  # Truncate to date + hour
         except Exception:
-            return f"Day {self.forecast_days}"
+            return f"Step {self.valid_time_index}"
 
     def view(self):
         """Create complete dashboard layout."""
@@ -343,12 +290,12 @@ class GEFSIdahoDashboard(param.Parameterized):
                 self.param,
                 parameters=[
                     "variable",
-                    "forecast_days",
                     "city",
                     "accumulation_window",
+                    "valid_time_index",
                 ],
                 widgets={
-                    "forecast_days": pn.widgets.IntSlider,
+                    "valid_time_index": pn.widgets.IntSlider,
                 },
             ),
         )
@@ -376,7 +323,6 @@ def create_dashboard():
     """Create and configure the GEFS Idaho dashboard."""
     logger.info("Creating dashboard instance...")
     app = GEFSIdahoDashboard()
-    pn.state.onload(lambda: app._load_data())
     return app.view()
 
 

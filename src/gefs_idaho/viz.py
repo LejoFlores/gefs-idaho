@@ -5,13 +5,21 @@ import hvplot.xarray  # noqa: F401 (enables .hvplot() accessor)
 import holoviews as hv
 import panel as pn
 import xarray as xr
+import geoviews as gv
+import cartopy.crs as ccrs
+import cartopy.feature as cfeature
 
-# Idaho cities for quick selection
+# Western US cities for quick selection
 IDAHO_CITIES = {
     "Boise": {"lat": 43.6150, "lon": -116.2023},
     "Twin Falls": {"lat": 42.5630, "lon": -114.4608},
     "Idaho Falls": {"lat": 43.4916, "lon": -112.0339},
     "Coeur d'Alene": {"lat": 47.6777, "lon": -116.7805},
+    "Denver": {"lat": 39.7392, "lon": -104.9903},
+    "Reno": {"lat": 39.5296, "lon": -119.8138},
+    "Salt Lake City": {"lat": 40.7608, "lon": -111.8910},
+    "Jackson, WY": {"lat": 43.4799, "lon": -110.7624},
+    "Vail, CO": {"lat": 39.6403, "lon": -106.3742},
 }
 
 
@@ -22,9 +30,10 @@ def plot_map(
     clabel: str = "",
     width: int = 600,
     height: int = 400,
+    clim: tuple = None,
 ) -> hv.QuadMesh:
     """
-    Create interactive map visualization using hvPlot.
+    Create interactive map visualization using hvPlot with cartopy features.
 
     Parameters
     ----------
@@ -38,11 +47,13 @@ def plot_map(
         Colorbar label
     width, height : int
         Plot dimensions in pixels
+    clim : tuple of (min, max), optional
+        Fixed color scale limits to prevent colorbar jumping
 
     Returns
     -------
     hv.QuadMesh
-        Interactive map plot
+        Interactive map plot with state/national boundaries and coastlines
 
     Notes
     -----
@@ -53,6 +64,7 @@ def plot_map(
     lat_name = _find_coord(da, ["latitude", "lat", "y"])
     lon_name = _find_coord(da, ["longitude", "lon", "x"])
 
+    # Create base quadmesh plot with geo enabled
     plot = da.hvplot.quadmesh(
         x=lon_name,
         y=lat_name,
@@ -61,11 +73,21 @@ def plot_map(
         clabel=clabel,
         width=width,
         height=height,
+        clim=clim,
         rasterize=True,  # Use Datashader for large grids
-        geo=False,  # Disable geographic projection to avoid geoviews requirement
+        projection=ccrs.PlateCarree(),
+        geo=True,
+        coastline=True,
+        global_extent=False,
     )
-
-    return plot
+    
+    # Add cartopy features matching notebook style
+    states = gv.feature.states(line_width=0.5, line_color='black')
+    countries = gv.feature.borders(line_width=1.0, line_color='black')
+    coastlines = gv.feature.coastline(line_width=1.0, line_color='black')
+    
+    # Combine base plot with features
+    return plot * states * countries * coastlines
 
 
 def plot_time_series(
@@ -136,9 +158,74 @@ def plot_time_series(
 
     time_name = _find_coord(point_data, ["valid_time", "time", "step", "lead_time"])
 
-    # If Dataset with percentiles, plot median with uncertainty
+    # If Dataset with percentiles, plot mean with uncertainty
+    if isinstance(point_data, xr.Dataset) and "mean" in point_data:
+        # Use bracket notation to avoid conflict with .mean() method
+        mean_line = point_data['mean'].hvplot.line(
+            x=time_name,
+            label="Ensemble Mean",
+            title=title,
+            ylabel=ylabel,
+            width=width,
+            height=height,
+            line_width=2,
+        )
+
+        # Add uncertainty band (mean ± 1 std dev)
+        if "std" in point_data:
+            # Compute upper and lower bounds
+            upper_data = point_data['mean'] + point_data['std']
+            lower_data = point_data['mean'] - point_data['std']
+            
+            # Clip lower bound to zero for non-negative variables (e.g., precipitation)
+            # This prevents non-physical negative values
+            import numpy as np
+            lower_data = xr.where(lower_data < 0, 0, lower_data)
+            
+            # Create uncertainty band using hv.Area
+            # Convert to pandas-friendly format for HoloViews
+            time_coord = point_data[time_name]
+            time_vals = time_coord.values
+            
+            # Create the area plot by manually building HoloViews elements
+            import pandas as pd
+            df = pd.DataFrame({
+                time_name: time_vals,
+                'upper': upper_data.values,
+                'lower': lower_data.values,
+                'mean': point_data['mean'].values,
+            })
+            
+            # Sort by time for proper area rendering
+            if hasattr(time_vals[0], '__iter__') and not isinstance(time_vals[0], str):
+                pass  # Already sortable
+            else:
+                df = df.sort_values(time_name)
+            
+            # Create mean curve separately for better styling
+            curve = hv.Curve(df, time_name, 'mean', label='Ensemble Mean').opts(
+                line_width=2, color='steelblue'
+            )
+            
+            # Combine: area plot + mean line
+            # Use .opts() for styling parameters like alpha
+            area_plot = hv.Area(df, time_name, ['lower', 'upper'], label='±1 std dev').opts(
+                alpha=0.2, color='steelblue'
+            )
+            
+            return (area_plot * curve).opts(
+                width=width, 
+                height=height, 
+                title=title,
+                xlabel=time_name,
+                ylabel=ylabel
+            )
+        
+        return mean_line
+    
+    # Fallback to p50 if mean not available (backwards compatibility)
     if isinstance(point_data, xr.Dataset) and "p50" in point_data:
-        median = point_data.p50.hvplot.line(
+        median = point_data['p50'].hvplot.line(
             x=time_name,
             label="Median",
             title=title,

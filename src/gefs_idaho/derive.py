@@ -30,7 +30,20 @@ def add_valid_time(ds: xr.Dataset) -> xr.Dataset:
     valid_time = initialization_time + forecast_step
     """
     if "valid_time" in ds.coords:
-        return ds
+        vt = ds["valid_time"]
+        try:
+            if vt.size > 0:
+                vt_min = vt.min().values
+                vt_max = vt.max().values
+                epoch = np.datetime64("1970-01-01T00:00:00")
+                if vt_min == vt_max == epoch:
+                    pass
+                else:
+                    return ds
+            else:
+                return ds
+        except Exception:
+            return ds
 
     # Find time and step coordinate names
     time_name = _find_time_coord(ds)
@@ -170,7 +183,7 @@ def compute_ensemble_statistics(
     da: xr.DataArray,
 ) -> xr.Dataset:
     """
-    Compute standard ensemble statistics: 10th, 50th, 90th percentiles.
+    Compute standard ensemble statistics: mean, std dev, and percentiles.
 
     Parameters
     ----------
@@ -180,9 +193,36 @@ def compute_ensemble_statistics(
     Returns
     -------
     xr.Dataset
-        Dataset with p10, p50 (median), p90 variables
+        Dataset with mean, std (standard deviation), p10, p50 (median), p90 variables
     """
-    return compute_ensemble_percentiles(da, percentiles=[10, 50, 90])
+    # Find ensemble dimension
+    ensemble_dim = _find_ensemble_dim(da)
+    
+    # Preserve all non-ensemble coordinates
+    preserved_coords = {
+        k: v for k, v in da.coords.items() if ensemble_dim not in v.dims
+    }
+    
+    # Compute mean and standard deviation
+    mean = da.mean(dim=ensemble_dim)
+    std = da.std(dim=ensemble_dim)
+    
+    # Compute percentiles
+    percentiles_ds = compute_ensemble_percentiles(da, percentiles=[10, 50, 90])
+    
+    # Combine into single dataset
+    result = xr.Dataset({
+        'mean': mean,
+        'std': std,
+        **{k: v for k, v in percentiles_ds.data_vars.items()}
+    })
+    
+    # Re-assign preserved coordinates
+    for coord_name, coord_data in preserved_coords.items():
+        if coord_name not in result.coords:
+            result = result.assign_coords({coord_name: coord_data})
+    
+    return result
 
 
 def _find_time_coord(ds: xr.Dataset) -> str:

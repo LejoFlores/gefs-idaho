@@ -1,10 +1,6 @@
-2026-01-31 17:48:28,851 Starting Bokeh server version 3.8.2 (running on Tornado 6.5.4)
-2026-01-31 17:48:28,853 User authentication hooks NOT provided (default user enabled)
-2026-01-31 17:48:28,858 Bokeh app running at: http://localhost:5006/app
-2026-01-31 17:48:28,858 Starting Bokeh server with process id: 10874
-/Users/lejoflores/gefs-idaho/src/gefs_idaho/data.py:135: FutureWarning: The return type of `Dataset.dims` will be changed to return a set of dimension names in future, in order to be more consistent with `DataArray.dims`. To access a mapping from dimension names to lengths, please use `Dataset.sizes`.
-  logger.info(f"  Idaho dimensions: {dict(ds_idaho.dims)}")
-/Users/lejoflores/gefs-idaho/app.py:98: FutureWarning: The return type of `Dataset.dims` will be changed to return a set of dimension names in future, in order to be more consistent with `DataArray.dims`. To access a mapping from dimension names to lengths, please use `Dataset.sizes`.
-  logger.info(f"  Dimensions: {dict(ds.dims)}")
-/opt/homebrew/Cellar/python@3.11/3.11.14_2/Frameworks/Python.framework/Versions/3.11/lib/python3.11/multiprocessing/resource_tracker.py:254: UserWarning: resource_tracker: There appear to be 1 leaked semaphore objects to clean up at shutdown
-  warnings.warn('resource_tracker: There appear to be %d '
+2026-01-31 23:09:17,892 Starting Bokeh server version 3.8.2 (running on Tornado 6.5.4)
+2026-01-31 23:09:17,897 User authentication hooks NOT provided (default user enabled)
+2026-01-31 23:09:17,901 Bokeh app running at: http://localhost:5006/app
+2026-01-31 23:09:17,901 Starting Bokeh server with process id: 38880
+2026-01-31 23:09:40,060 WebSocket connection opened
+2026-01-31 23:09:40,061 ServerConnection created

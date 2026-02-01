@@ -18,6 +18,8 @@ dependencies = [
     "s3fs",
     "aiohttp",  # Required by fsspec HTTPFileSystem for remote Zarr access
     "requests",  # Required by fsspec HTTPFileSystem for remote Zarr access
+    "geoviews",
+    "cartopy",
 ]
 
 [build-system]
@@ -33,4 +35,7 @@ dev = [
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
+markers = [
+    "network: requires remote GEFS data",
+]
 
